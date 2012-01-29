@@ -1,0 +1,79 @@
+#! /bin/bash
+
+PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+
+PROGNAME=`basename $0`
+PROGPATH=`echo $0 | sed -e 's,[\\/][^\\/][^\\/]*$,,'`
+REVISION="0.0.1"
+
+test_url="http://speed01.il.towerstream.com/speedtest/random1000x1000.jpg"
+
+print_usage() {
+	echo "Usage: $PROGNAME warning-threshold critical-threshold [ url ]"
+}
+
+print_revision() {
+	echo "$1 v$2"
+	echo "The nagios plugins come with ABSOLUTELY NO WARRANTY. You may redistribute\ncopies of the plugins under the terms of the GNU General Public License.\nFor more information about these matters, see the file named COPYING.\n" | sed -e 's/\n/ /g'
+}
+
+print_help() {
+	print_revision $PROGNAME $REVISION
+	echo ""
+	print_usage
+	echo ""
+	echo "This plugin checks the internet bandwidth using Apache2's ab utility."
+	exit 0
+}
+
+if test $# -lt 2 ; then
+	print_usage
+	exit 0
+elif test $# -eq 3 ; then
+	test_url="$3"
+fi
+
+case "$1" in
+	--help)
+		print_help
+		exit 0
+		;;
+	-h)
+		print_help
+		exit 0
+		;;
+	--version)
+   	print_revision $PROGNAME $REVISION
+		exit 0
+		;;
+	-V)
+		print_revision $PROGNAME $REVISION
+		exit 0
+		;;
+	*)
+		speeddata=`ab -n 4 -c 4 ${test_url} 2>&1 | grep 'Transfer rate' | grep -o "[0-9]*" | head -n 1`
+		status=$?
+		if test ${status} -eq 127; then
+			echo "ab UNKNOWN - command not found (did you install apache2-utils?)"
+			exit -1
+		elif test ${status} -ne 0 ; then
+			echo "WARNING - ab returned state $status"
+			exit 1
+		elif test -z ${speeddata} ; then
+			echo "WARNING - could not extract bandwidth data from ab's response"
+			exit 1
+		fi
+		warning_threshold="$1"
+		critical_threshold="$2"
+		if test ${speeddata} -lt ${critical_threshold}; then
+			echo BANDWIDTH CRITICAL - observed ${speeddata}, threshold ${critical_threshold}
+			exit 2
+		elif test ${speeddata} -lt ${warning_threshold}; then
+			echo BANDWIDTH WARNING - observed ${speeddata}, threshold ${warning_threshold}
+			exit 1
+		else
+			echo bandwidth ok
+			exit 0
+		fi
+		;;
+esac

@@ -1,0 +1,18 @@
+Usage: check_bandwidth warning-threshold critical-threshold [ url ]
+
+These thresholds are in kilobytes per second. Example for a 12Mbps
+connection with thresholds set to 85% and 65% approximately:
+
+check_bandwidth 1300 1000
+
+You should provide the Speedtest.net URL for your location. Example:
+
+http://speed01.il.towerstream.com/speedtest/random1000x1000.jpg
+
+TODO
+
+Add the ability to check upload bandwidth.
+
+DISCLAIMER
+
+Use at your own risk.
